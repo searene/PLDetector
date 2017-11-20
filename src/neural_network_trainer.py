@@ -17,7 +17,8 @@ from src.github_fetcher import ext_lang_dict
 
 
 class NeuralNetworkTrainer:
-    def __init__(self, train_data_dir: str, test_data_dir: str, vocab_location: str, word2vec_location: str, ext_lang_dict: Dict[str, Union[str, List[str]]]):
+    def __init__(self, train_data_dir: str, test_data_dir: str, vocab_location: str, word2vec_location: str,
+                 ext_lang_dict: Dict[str, Union[str, List[str]]]):
         self.train_data_dir = train_data_dir
         self.test_data_dir = test_data_dir
         self.vocab_location = vocab_location
@@ -27,6 +28,7 @@ class NeuralNetworkTrainer:
         self.wordvec_dimension = 100
         self.ext_lang_dict = ext_lang_dict
         self.lang_seq_dict: ndarray = self.__get_lang_to_seq_dict()
+        self.input_length: int = 1000
 
         languages = self.__get_languages(ext_lang_dict)
         self.__build_language_tokenizer(list(languages))
@@ -40,13 +42,13 @@ class NeuralNetworkTrainer:
 
     def build_vocabulary(self) -> Counter:
         vocabulary: Counter = Counter()
-        files = self.__get_files()
+        files = self.__get_files([self.train_data_dir, self.test_data_dir])
         for f in files:
             words = self.__load_words(f)
             vocabulary.update(words)
 
         # remove rare words
-        min_count = 2
+        min_count = 5
         vocabulary = [word for word, count in vocabulary.items() if count >= min_count]
         return vocabulary
 
@@ -61,7 +63,7 @@ class NeuralNetworkTrainer:
 
     def build_word2vec_model(self, vocabulary: Set[str]) -> Word2Vec:
         all_tokens: List[List[str]] = []
-        files: List[str] = self.__get_files()
+        files: List[str] = self.__get_files([self.train_data_dir, self.test_data_dir])
         for f in files:
             words: List[str] = self.__load_words(f)
             all_tokens.append([token for token in words if token in vocabulary])
@@ -82,13 +84,17 @@ class NeuralNetworkTrainer:
 
     def build_model(self) -> Sequential:
         weight_matrix: ndarray = self.__get_weights()
+        print(f"weight_matrix.shape: {weight_matrix.shape}")
 
         # build the embedding layer
         input_dim = len(self.vocab_tokenizer.word_index) + 1
         output_dim = self.wordvec_dimension
         x_train, y_train = self.__load_data(self.train_data_dir)
+        print(f"x_train.shape: {x_train.shape}")
+        print(f"y_train.shape: {y_train.shape}")
 
-        embedding_layer = Embedding(input_dim, output_dim, weights=[weight_matrix], input_length=x_train.shape[1], trainable=False)
+        embedding_layer = Embedding(input_dim, output_dim, weights=[weight_matrix], input_length=self.input_length,
+                                    trainable=False)
 
         model = Sequential()
         model.add(embedding_layer)
@@ -102,6 +108,8 @@ class NeuralNetworkTrainer:
 
     def evaluate_model(self, model: Sequential) -> None:
         x_test, y_test = self.__load_data(self.test_data_dir)
+        print(f"x_test.shape: {x_test.shape}")
+        print(f"y_test.shape: {y_test.shape}")
         loss, acc = model.evaluate(x_test, y_test, verbose=0)
         print('Test Accuracy: %f' % (acc * 100))
 
@@ -114,16 +122,27 @@ class NeuralNetworkTrainer:
                 languages.update(language)
         return languages
 
-    def __build_language_tokenizer(self, types: List[str]) -> Tokenizer:
+    def __build_language_tokenizer(self, languages: List[str]) -> Tokenizer:
         if self.language_tokenizer is None:
             self.language_tokenizer = Tokenizer()
-            self.language_tokenizer.fit_on_texts(types)
+            self.language_tokenizer.fit_on_texts(languages)
         return self.language_tokenizer
 
-    def __get_files(self) -> List[str]:
+    def __get_files(self, data_dirs: List[str]) -> List[str]:
         result: List[str] = []
-        for root, sub_folders, files in os.walk(self.train_data_dir):
-            result.extend([os.path.join(root, f) for f in files])
+        for data_dir in data_dirs:
+            depth = 0
+            for root, sub_folders, files in os.walk(data_dir):
+                depth += 1
+
+                # ignore the first loop
+                if depth == 1:
+                    continue
+
+                language = os.path.basename(root)
+                if self.__should_language_be_loaded(language):
+                    result.extend([os.path.join(root, f) for f in files])
+                depth += 1
         return result
 
     def __load_words(self, file_name: str) -> List[str]:
@@ -135,7 +154,7 @@ class NeuralNetworkTrainer:
             return []
 
         contents = " ".join(contents.splitlines())
-        result = re.split(r"([{}\(\)\[\]\'\":\.\*\s])", contents)
+        result = re.split(r"[{}()\[\]\'\":.*\s,#=_/\\><;?\-|+]", contents)
 
         # remove empty elements
         result = [word for word in result if word.strip() != ""]
@@ -143,7 +162,9 @@ class NeuralNetworkTrainer:
         return result
 
     def __load_sentence(self, file_name: str) -> str:
-        return " ".join(self.__load_words(file_name))
+        """ Used in loading data, word that is not in the vocabulary will not be included
+        """
+        return " ".join([word for word in self.__load_words(file_name) if word in self.vocab])
 
     def __build_vocab_tokenizer(self, vocab: Set[str]) -> Tokenizer:
         if self.vocab_tokenizer is None:
@@ -153,7 +174,11 @@ class NeuralNetworkTrainer:
 
     def __encode(self, sentences: List[str]) -> ndarray:
         encoded_sentences: List[List[int]] = self.vocab_tokenizer.texts_to_sequences(sentences)
-        max_length = max([len(sentence) for sentence in encoded_sentences])
+        if self.input_length is not None:
+            max_length = self.input_length
+        else:
+            max_length = max([len(sentence) for sentence in encoded_sentences])
+            self.input_length = max_length
         # shape: n_files * max_length
         return pad_sequences(encoded_sentences, maxlen=max_length, padding="post")
 
@@ -186,19 +211,24 @@ class NeuralNetworkTrainer:
                 i += 1
         return result
 
-    def __load_data(self, data_dir: str) -> (ndarray, ndarray):
-        x_train_raw: List[str] = []
-        y_train_raw: List[str] = []
-        files: List[str] = glob.glob(f"{data_dir}/**/*")
-        for f in files:
-            language = os.path.dirname(f).split(os.path.sep)[-1]
-            sentence = self.__load_sentence(f)
-            x_train_raw.append(sentence)
-            y_train_raw.append(language)
-        x: ndarray = self.__encode(x_train_raw)
-        y: ndarray = asarray([self.lang_seq_dict[lang] for lang in y_train_raw])
-        return x, y
+    def __should_language_be_loaded(self, language):
+        for value in ext_lang_dict.values():
+            if value == language:
+                return True
+        return False
 
+    def __load_data(self, data_dir: str) -> (ndarray, ndarray):
+        x_raw: List[str] = []
+        y_raw: List[str] = []
+        for f in self.__get_files([data_dir]):
+            language: str = os.path.dirname(f).split(os.path.sep)[-1]
+            sentence: str = self.__load_sentence(f)
+            if len(sentence) != 0:
+                x_raw.append(sentence)
+                y_raw.append(language)
+        x: ndarray = self.__encode(x_raw)
+        y: ndarray = asarray([self.lang_seq_dict[lang] for lang in y_raw])
+        return x, y
 
 
 if __name__ == "__main__":
