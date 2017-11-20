@@ -25,7 +25,7 @@ class <%= class_name %>MailerTest < Test::Unit::TestCase
       IO.readlines("#{FIXTURES_PATH}/<%= file_name %>_mailer/#{action}")
     end
 
-    def encode(subject)
+    def encode_sentence(subject)
       quoted_printable(subject, CHARSET)
     end
 end

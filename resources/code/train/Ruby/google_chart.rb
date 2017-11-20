@@ -20,7 +20,7 @@ module GoogleChart
 
     # Encode +n+ as a string. +n+ is normalized based on +max+.
     # Blatantly copied from GChart (http://gchart.rubyforge.org)
-    def encode(encoding, n, max)
+    def encode_sentence(encoding, n, max)
       case encoding
       when :simple
         return "_" if n.nil?

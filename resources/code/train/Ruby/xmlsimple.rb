@@ -847,7 +847,7 @@ class XmlSimple
       }
     else
       # Probably, this is obsolete.
-      raise ArgumentError, "Can't encode a value of type: #{ref.type}."
+      raise ArgumentError, "Can't encode_sentence a value of type: #{ref.type}."
     end
     @ancestors.pop if !scalar(ref)
     result.join('')

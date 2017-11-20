@@ -529,7 +529,7 @@ if __name__ == "__main__":
 #0.8 - 1/4/2005 - PEM - Improved intelligence of posts caching: will only
 #   re-download all posts if the posts attribute has been changed. Added
 #   the mandatory delay between requests of at least one second. Changed the
-#   crude string replace method to encode ampersands with a more intelligent
+#   crude string replace method to encode_sentence ampersands with a more intelligent
 #   regular expression.
 #0.9 - 2/4/2005 - PEM - Now uses datetime objects when possible.
 #0.10 - 4/4/2005 - PEM - Uses the time module when the datetime module is

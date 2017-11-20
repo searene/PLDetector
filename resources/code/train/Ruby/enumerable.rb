@@ -7,6 +7,6 @@ module Enumerable
   #
   # will pass the <tt>:only => :name</tt> option to each user.
   def to_json(options = {}) #:nodoc:
-    "[#{map { |value| ActiveSupport::JSON.encode(value, options) } * ', '}]"
+    "[#{map { |value| ActiveSupport::JSON.encode_sentence(value, options) } * ', '}]"
   end
 end

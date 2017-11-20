@@ -30,7 +30,7 @@
 # with permission of Minero Aoki.
 #++
 
-require 'tmail/encode'
+require 'tmail/encode_sentence'
 require 'tmail/parser'
 
 

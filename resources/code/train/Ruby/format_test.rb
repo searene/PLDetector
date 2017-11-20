@@ -12,7 +12,7 @@ class FormatTest < Test::Unit::TestCase
   def test_formats_on_single_element
     for format in [ :json, :xml ]
       using_format(Person, format) do
-        ActiveResource::HttpMock.respond_to.get "/people/1.#{format}", {}, ActiveResource::Formats[format].encode(@david)
+        ActiveResource::HttpMock.respond_to.get "/people/1.#{format}", {}, ActiveResource::Formats[format].encode_sentence(@david)
         assert_equal @david[:name], Person.find(1).name
       end
     end
@@ -21,7 +21,7 @@ class FormatTest < Test::Unit::TestCase
   def test_formats_on_collection
     for format in [ :json, :xml ]
       using_format(Person, format) do
-        ActiveResource::HttpMock.respond_to.get "/people.#{format}", {}, ActiveResource::Formats[format].encode(@programmers)
+        ActiveResource::HttpMock.respond_to.get "/people.#{format}", {}, ActiveResource::Formats[format].encode_sentence(@programmers)
         remote_programmers = Person.find(:all)
         assert_equal 2, remote_programmers.size
         assert remote_programmers.select { |p| p.name == 'David' }

@@ -17,7 +17,7 @@ module ActiveSupport
       REFERENCE_STACK_VARIABLE = :json_reference_stack #:nodoc:
 
       # Converts a Ruby object into a JSON string.
-      def encode(value, options = {})
+      def encode_sentence(value, options = {})
         raise_on_circular_reference(value) do
           value.send(:to_json, options)
         end

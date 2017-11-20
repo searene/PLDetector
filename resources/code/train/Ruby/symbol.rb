@@ -1,5 +1,5 @@
 class Symbol
   def to_json(options = {}) #:nodoc:
-    ActiveSupport::JSON.encode(to_s, options)
+    ActiveSupport::JSON.encode_sentence(to_s, options)
   end
 end

@@ -64,12 +64,12 @@ describe GoogleChart::Base do
 end
 
 # Blatantly copied from GChart(http://gchart.rubyforge.org)
-describe GoogleChart, ".encode" do
+describe GoogleChart, ".encode_sentence" do
   it "supports the simple, text, and extended encoding" do
-    lambda { GoogleChart.encode(:simple, 4, 10) }.should_not raise_error(ArgumentError)
-    lambda { GoogleChart.encode(:text, 4, 10) }.should_not raise_error(ArgumentError)
-    lambda { GoogleChart.encode(:extended, 4, 10) }.should_not raise_error(ArgumentError)
-    lambda { GoogleChart.encode(:monkey, 4, 10) }.should raise_error(ArgumentError)
+    lambda { GoogleChart.encode_sentence(:simple, 4, 10) }.should_not raise_error(ArgumentError)
+    lambda { GoogleChart.encode_sentence(:text, 4, 10) }.should_not raise_error(ArgumentError)
+    lambda { GoogleChart.encode_sentence(:extended, 4, 10) }.should_not raise_error(ArgumentError)
+    lambda { GoogleChart.encode_sentence(:monkey, 4, 10) }.should raise_error(ArgumentError)
   end
 
   it "implements the simple encoding" do
@@ -79,7 +79,7 @@ describe GoogleChart, ".encode" do
     }
 
     expected.each do |original, encoded|
-      GoogleChart.encode(:simple, original, 61).should == encoded
+      GoogleChart.encode_sentence(:simple, original, 61).should == encoded
     end
   end
 
@@ -89,7 +89,7 @@ describe GoogleChart, ".encode" do
     }
 
     expected.each do |original, encoded|
-      GoogleChart.encode(:text, original, 100).should == encoded
+      GoogleChart.encode_sentence(:text, original, 100).should == encoded
     end
   end
 
@@ -101,25 +101,25 @@ describe GoogleChart, ".encode" do
     }
 
     expected.each do |original, encoded|
-      GoogleChart.encode(:extended, original, 4095).should == encoded
+      GoogleChart.encode_sentence(:extended, original, 4095).should == encoded
     end
   end
 
   it "encodes nil correctly" do
-    GoogleChart.encode(:simple, nil, 1).should == "_"
-    GoogleChart.encode(:text, nil, 1).should == "-1"
-    GoogleChart.encode(:extended, nil, 1).should == "__"
+    GoogleChart.encode_sentence(:simple, nil, 1).should == "_"
+    GoogleChart.encode_sentence(:text, nil, 1).should == "-1"
+    GoogleChart.encode_sentence(:extended, nil, 1).should == "__"
   end
 
   it "encodes 0 with a max of 0 correctly using extended" do
-    GoogleChart.encode(:extended, 0, 0).should == "AA"
+    GoogleChart.encode_sentence(:extended, 0, 0).should == "AA"
   end
 
   it "encodes 0 with a max of 0 correctly using simple" do
-    GoogleChart.encode(:simple, 0, 0).should == "A"
+    GoogleChart.encode_sentence(:simple, 0, 0).should == "A"
   end
 
   it "encodes 0 with a max of 0 correctly using text" do
-    GoogleChart.encode(:text, 0, 0).should == "0.0"
+    GoogleChart.encode_sentence(:text, 0, 0).should == "0.0"
   end
 end

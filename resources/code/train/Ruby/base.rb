@@ -129,7 +129,7 @@ module GoogleChart
     end
 
     def add_data
-      sets = encode_data # calling encode data method of subclass
+      sets = encode_data # calling encode_sentence data method of subclass
       prefix = case encoding
                when :simple then "s:"
                when :text then "t:"

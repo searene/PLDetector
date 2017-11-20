@@ -47,7 +47,7 @@ describe GoogleChart::VennDiagram do
     lambda { @venn.intersections "hi",3 }.should raise_error(ArgumentError)
   end
 
-  it "should encode values and intersections correctly" do
+  it "should encode_sentence values and intersections correctly" do
     @venn.encoding = :text
     @venn.data "Circle 1", 100
     @venn.data "Circle 2", 100

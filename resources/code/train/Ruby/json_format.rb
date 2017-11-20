@@ -11,7 +11,7 @@ module ActiveResource
         "application/json"
       end
       
-      def encode(hash)
+      def encode_sentence(hash)
         hash.to_json
       end
       
