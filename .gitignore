@@ -4,4 +4,3 @@ vocab.txt
 word2vec.txt
 __pycache__/
 test.py
-models/
