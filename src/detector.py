@@ -1,4 +1,5 @@
-from typing import Dict, List, Iterable
+import logging
+from typing import Dict, List, Iterable, Set
 import os
 
 from keras import Sequential
@@ -11,14 +12,29 @@ from src import config
 from src.config import input_length
 from src.github_fetcher import ext_lang_dict
 from src.neural_network_trainer import build_vocab_tokenizer_from_file, encode_sentence, to_language, \
-    NeuralNetworkTrainer, load_model, to_binary_list
+    NeuralNetworkTrainer, load_model, to_binary_list, get_files, load_vocab, build_vocab_tokenizer_from_set, load_data, \
+    save_numpy_arrays
 
-vocab_tokenizer: Tokenizer = build_vocab_tokenizer_from_file(config.vocab_location)
+vocab: Set[str] = load_vocab(config.vocab_location)
+vocab_tokenizer: Tokenizer = build_vocab_tokenizer_from_set(vocab)
+
+x_test, y_test = load_data(f"{config.data_dir}/test", vocab, vocab_tokenizer)
+
+# save_numpy_arrays({
+#     "../resources/x_test.txt": x_test,
+#     "../resources/y_test.txt": y_test
+# })
 
 
 def get_neural_network_input(code: str) -> np.ndarray:
     encoded_sentence: List[int] = encode_sentence(code, vocab_tokenizer)
     return pad_sequences([encoded_sentence], maxlen=input_length)
+
+
+def get_batch_neural_network_input(codes: List[str]) -> np.ndarray:
+    encoded_sentences: List[List[int]] = [encode_sentence(code, vocab_tokenizer) for code in codes]
+    padded_sentences = pad_sequences(encoded_sentences, maxlen=input_length)
+    return padded_sentences
 
 
 def detect(code: str, model=None):
@@ -28,26 +44,41 @@ def detect(code: str, model=None):
     return to_language(y_proba)
 
 
+def load_test_data_incorrectly():
+    files: List[str] = get_files([os.path.join(config.data_dir, "test")])
+    processed_files: List[str] = []
+    file_contents_list: List[str] = []
+    for f in files:
+        try:
+            with open(f, "r") as opened_file:
+                file_contents = opened_file.read()
+                file_contents_list.append(file_contents)
+                processed_files.append(f)
+        except UnicodeDecodeError:
+            logging.error(f"Error occurred while reading {f}")
+
+    encoded_sentences: List[List[int]] = [encode_sentence(code, vocab_tokenizer) for code in file_contents_list]
+    x_test = pad_sequences(encoded_sentences, maxlen=input_length)
+    y_correct: List[str] = [os.path.dirname(f).split(os.path.sep)[-1] for f in processed_files]
+    return x_test, y_correct
+
+
 def calculate_accuracy():
     total_count = 0
     correct_count = 0
-    neural_network_trainer = NeuralNetworkTrainer(
-        f"{config.data_dir}/train",
-        f"{config.data_dir}/test",
-        config.vocab_location,
-        config.word2vec_location,
-        ext_lang_dict)
-    files: List[str] = neural_network_trainer.get_files([os.path.join(config.data_dir, "test")])
-    for f in files:
-        with open(f, "r") as opened_file:
-            file_contents = opened_file.read()
-        correct_language: str = os.path.dirname(f).split(os.path.sep)[-1]
-        predicted_language = detect(file_contents)
-        print(f"correct_language: {correct_language}")
-        print(f"predicted_language: {predicted_language}")
-        total_count += 1
-        if correct_language == predicted_language:
+    model = load_model(config.model_file_location, config.weights_file_location)
+
+    _, correct_languages = load_test_data_incorrectly()
+    x_test: np.ndarray = np.loadtxt("../resources/x_test.txt")
+
+    y_probas = model.predict(x_test)
+    predicted_languages = [to_language(y_proba) for y_proba in y_probas]
+    print(f"correct_language: {correct_languages}")
+    print(f"predicted_language: {predicted_languages}")
+    for correct_lang, predicted_lang in zip(correct_languages, predicted_languages):
+        if correct_lang == predicted_lang:
             correct_count += 1
+        total_count += 1
     print(f"accuracy: {correct_count / total_count}")
 
 
@@ -86,5 +117,5 @@ def load_saved_training_data_and_evaluate():
 
 
 if __name__ == "__main__":
-    # calculate_accuracy()
-    load_saved_training_data_and_evaluate()
+    calculate_accuracy()
+    # load_saved_training_data_and_evaluate()
