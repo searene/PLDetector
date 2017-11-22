@@ -6,6 +6,7 @@ import os
 from gensim.models import Word2Vec
 from keras import Sequential
 from keras.layers import Embedding, Conv1D, MaxPooling1D, Flatten, Dense
+from keras.models import model_from_json
 from keras.preprocessing.sequence import pad_sequences
 from keras.preprocessing.text import Tokenizer
 from numpy import asarray, ndarray, zeros
@@ -13,6 +14,12 @@ from src import config
 from src.config import input_length
 from src.github_fetcher import ext_lang_dict
 
+
+def evaluate_saved_data(x_file_name: str, y_file_name: str, model: Sequential) -> None:
+    x: ndarray = np.loadtxt(x_file_name)
+    y: ndarray = np.loadtxt(y_file_name)
+    loss, accuracy = model.evaluate(x, y, verbose=2)
+    print(f"loss: {loss}, accuracy: {accuracy}")
 
 def get_all_languages() -> List[str]:
     result: List[str] = []
@@ -65,6 +72,13 @@ def load_word2vec(word2vec_location: str) -> Dict[str, ndarray]:
     return result
 
 
+def load_model(model_file_location: str, weights_file_location: str) -> Sequential:
+    with open(model_file_location) as f:
+        model = model_from_json(f.read())
+    model.load_weights(weights_file_location)
+    return model
+
+
 def build_vocab_tokenizer_from_set(s: Set[str]) -> Tokenizer:
     vocab_tokenizer = Tokenizer(lower=False, filters="")
     vocab_tokenizer.fit_on_texts(s)
@@ -74,6 +88,11 @@ def build_vocab_tokenizer_from_set(s: Set[str]) -> Tokenizer:
 def build_vocab_tokenizer_from_file(vocab_location: str) -> Tokenizer:
     s: Set[str] = load_vocab(vocab_location)
     return build_vocab_tokenizer_from_set(s)
+
+
+def save_numpy_arrays(numpy_arrays: Dict[str, ndarray]):
+    for file_name, array in numpy_arrays.items():
+        np.savetxt(file_name, array)
 
 
 class NeuralNetworkTrainer:
@@ -143,6 +162,11 @@ class NeuralNetworkTrainer:
         output_dim = self.wordvec_dimension
         x_train, y_train = self.load_data(self.train_data_dir)
 
+        save_numpy_arrays({
+            "../resources/x_train.txt": x_train,
+            "../resources/y_train.txt": y_train
+        })
+
         embedding_layer = Embedding(input_dim, output_dim, weights=[weight_matrix], input_length=input_length,
                                     trainable=False)
         logging.info(f"x_train.shape: {x_train.shape}")
@@ -162,6 +186,10 @@ class NeuralNetworkTrainer:
 
     def evaluate_model(self, model: Sequential) -> None:
         x_test, y_test = self.load_data(self.test_data_dir)
+        save_numpy_arrays({
+            "../resources/x_test.txt": x_test,
+            "../resources/y_test.txt": y_test
+        })
         loss, acc = model.evaluate(x_test, y_test, verbose=0)
         logging.info('Test Accuracy: %f' % (acc * 100))
 
@@ -262,3 +290,5 @@ if __name__ == "__main__":
     # neural_network_trainer.evaluate_model(model)
     neural_network_trainer.evaluate_model(model)
     neural_network_trainer.save_model(model, config.model_file_location, config.weights_file_location)
+
+    evaluate_saved_data("../resources/x_train.txt", "../resources/y_train.txt", model)

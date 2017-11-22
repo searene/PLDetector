@@ -83,10 +83,5 @@ def evaluate_model_manually(model: Sequential) -> None:
 
 
 if __name__ == "__main__":
-    # model: Sequential = build_and_evaluate_mode()
-    # evaluate_model_manually(model)
-
-    languages = ['C', 'C#', 'CSS', 'HTML', 'Java', 'Javascript', 'Python']
-    for lang in languages:
-        if to_language(get_lang_sequence(lang)) != lang:
-            raise Exception("Not equal.")
+    model: Sequential = build_and_evaluate_mode()
+    evaluate_model_manually(model)
