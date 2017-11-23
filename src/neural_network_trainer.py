@@ -13,6 +13,33 @@ from numpy import asarray, ndarray, zeros
 from src import config
 from src.config import input_length
 from src.github_fetcher import ext_lang_dict
+import pickle
+
+
+def clean_vocab_and_word2vec() -> None:
+    try:
+        os.remove(config.vocab_location)
+    except FileNotFoundError:
+        pass
+    try:
+        os.remove(config.vocab_tokenizer_location)
+    except FileNotFoundError:
+        pass
+    try:
+        os.remove(config.word2vec_location)
+    except FileNotFoundError:
+        pass
+
+
+def save_vocab_tokenizer(vocab_tokenzier_location: str, vocab_tokenizer: Tokenizer) -> None:
+    with open(vocab_tokenzier_location, 'wb') as f:
+        pickle.dump(vocab_tokenizer, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+def load_vocab_tokenizer(vocab_tokenizer_location: str) -> Tokenizer:
+    with open(vocab_tokenizer_location, 'rb') as f:
+        tokenizer = pickle.load(f)
+    return tokenizer
 
 
 def evaluate_saved_data(x_file_name: str, y_file_name: str, model: Sequential) -> None:
@@ -83,6 +110,7 @@ def load_model(model_file_location: str, weights_file_location: str) -> Sequenti
 def build_vocab_tokenizer_from_set(s: Set[str]) -> Tokenizer:
     vocab_tokenizer = Tokenizer(lower=False, filters="")
     vocab_tokenizer.fit_on_texts(s)
+    print(vocab_tokenizer.texts_to_sequences(["size1"]))
     return vocab_tokenizer
 
 
@@ -182,7 +210,7 @@ def load_data(data_dir: str, vocab: Set[str], vocab_tokenizer: Tokenizer) -> (nd
 
 
 class NeuralNetworkTrainer:
-    def __init__(self, train_data_dir: str, test_data_dir: str, vocab_location: str, word2vec_location: str,
+    def __init__(self, train_data_dir: str, test_data_dir: str, vocab_location: str, vocab_tokenizer_location: str, word2vec_location: str,
                  ext_lang_dict: Dict[str, Union[str, List[str]]]):
         self.train_data_dir = train_data_dir
         self.test_data_dir = test_data_dir
@@ -196,12 +224,19 @@ class NeuralNetworkTrainer:
         languages = get_languages(ext_lang_dict)
         self.__build_language_tokenizer(list(languages))
 
-        self.build_and_save_vocabulary()
-        self.build_and_save_word2vec_model()
+        if not os.path.exists(self.vocab_location):
+            self.build_and_save_vocabulary()
+        if not os.path.exists(self.word2vec_location):
+            self.build_and_save_word2vec_model()
 
         self.word2vec: Dict[str, ndarray] = load_word2vec(self.word2vec_location)
         self.vocab: Set[str] = load_vocab(self.vocab_location)
-        self.vocab_tokenizer: Tokenizer = build_vocab_tokenizer_from_set(self.vocab)
+
+        if not os.path.exists(vocab_tokenizer_location):
+            vocab_tokenizer = build_vocab_tokenizer_from_set(self.vocab)
+            save_vocab_tokenizer(vocab_tokenizer_location, vocab_tokenizer)
+
+        self.vocab_tokenizer: Tokenizer = load_vocab_tokenizer(vocab_tokenizer_location)
 
     def build_vocabulary(self) -> Counter:
         vocabulary: Counter = Counter()
@@ -267,10 +302,10 @@ class NeuralNetworkTrainer:
 
     def evaluate_model(self, model: Sequential) -> None:
         x_test, y_test = load_data(self.test_data_dir, self.vocab, self.vocab_tokenizer)
-        # save_numpy_arrays({
-        #     "../resources/x_test.txt": x_test,
-        #     "../resources/y_test.txt": y_test
-        # })
+        save_numpy_arrays({
+            "../resources/x_test.txt": x_test,
+            "../resources/y_test.txt": y_test
+        })
         loss, acc = model.evaluate(x_test, y_test, verbose=0)
         logging.info('Test Accuracy: %f' % (acc * 100))
 
@@ -290,23 +325,14 @@ class NeuralNetworkTrainer:
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
+    # clean_vocab_and_word2vec()
     neural_network_trainer = NeuralNetworkTrainer(
         f"{config.data_dir}/train",
         f"{config.data_dir}/test",
         config.vocab_location,
+        config.vocab_tokenizer_location,
         config.word2vec_location,
         ext_lang_dict)
     model = neural_network_trainer.build_model()
-    # neural_network_trainer.evaluate_model(model)
-    save_model(model, config.model_file_location, config.weights_file_location)
-
-
-    vocab: Set[str] = load_vocab(config.vocab_location)
-    vocab_tokenizer: Tokenizer = build_vocab_tokenizer_from_set(vocab)
-
-    x_test, y_test = load_data(config.data_dir, vocab, vocab_tokenizer)
-
-    save_numpy_arrays({
-        "../resources/x_test.txt": x_test,
-        "../resources/y_test.txt": y_test
-    })
+    neural_network_trainer.evaluate_model(model)
+    # save_model(model, config.model_file_location, config.weights_file_location)
