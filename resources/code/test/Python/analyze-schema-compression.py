@@ -629,7 +629,7 @@ def analyze(table_info):
                     non_identity_columns.append(col)
     
                 # add the formatted column specification
-                encode_columns.extend(['"%s" %s %s %s encode %s %s'
+                encode_columns.extend(['"%s" %s %s %s encode_sentence %s %s'
                                        % (col, col_type, default_value, col_null, compression, distkey)])
             
             # if this table's encodings have not changed, then don't do a modification, unless force options is set

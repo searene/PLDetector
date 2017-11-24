@@ -77,7 +77,7 @@ class QuotingTest < Test::Unit::TestCase
   
   def test_encode
     encoded, decoded = expected_base64_strings
-    assert_equal encoded.length, TMail::Base64.encode(decoded).length
+    assert_equal encoded.length, TMail::Base64.encode_sentence(decoded).length
   end
   
   private

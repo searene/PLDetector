@@ -80,8 +80,8 @@ class Basecamp
   end
 
   # A wrapper to represent a file that should be uploaded. This is used so that
-  # the form/multi-part encoder knows when to encode a field as a file, versus
-  # when to encode it as a simple field.
+  # the form/multi-part encoder knows when to encode_sentence a field as a file, versus
+  # when to encode_sentence it as a simple field.
   class FileUpload
     attr_reader :filename, :content
     

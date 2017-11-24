@@ -9476,7 +9476,7 @@ function buildParams( prefix, obj, traditional, add ) {
 				add( prefix, v );
 
 			} else {
-				// Item is non-scalar (array or object), encode its numeric index.
+				// Item is non-scalar (array or object), encode_sentence its numeric index.
 				buildParams( prefix + "[" + ( typeof v === "object" ? i : "" ) + "]", v, traditional, add );
 			}
 		});
@@ -9517,8 +9517,8 @@ jQuery.param = function( a, traditional ) {
 		});
 
 	} else {
-		// If traditional, encode the "old" way (the way 1.3.2 or older
-		// did it), otherwise encode params recursively.
+		// If traditional, encode_sentence the "old" way (the way 1.3.2 or older
+		// did it), otherwise encode_sentence params recursively.
 		for ( prefix in a ) {
 			buildParams( prefix, a[ prefix ], traditional, add );
 		}

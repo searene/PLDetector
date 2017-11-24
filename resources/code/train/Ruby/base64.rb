@@ -39,7 +39,7 @@ module TMail
       [str].pack('m')
     end
 
-    def encode( str )
+    def encode_sentence( str )
       [str].pack('m').tr( "\r\n", '' )
     end
 

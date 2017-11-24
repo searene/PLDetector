@@ -30,7 +30,7 @@
 #++
 
 require 'tmail/interface'
-require 'tmail/encode'
+require 'tmail/encode_sentence'
 require 'tmail/header'
 require 'tmail/port'
 require 'tmail/config'
