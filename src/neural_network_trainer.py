@@ -194,7 +194,8 @@ def save_vocabulary(vocabulary: Counter, file_location: str) -> None:
 def load_sentence(file_name: str, vocab: Set[str]) -> str:
     """ Used in loading data, word that is not in the vocabulary will not be included
     """
-    return " ".join([word for word in load_words_from_file(file_name) if word in vocab])
+    words = load_words_from_file(file_name)
+    return " ".join([word for word in words if word in vocab])
 
 
 def load_data(data_dir: str, vocab: Set[str], vocab_tokenizer: Tokenizer) -> (ndarray, ndarray):
@@ -335,4 +336,4 @@ if __name__ == "__main__":
         ext_lang_dict)
     model = neural_network_trainer.build_model()
     neural_network_trainer.evaluate_model(model)
-    # save_model(model, config.model_file_location, config.weights_file_location)
+    save_model(model, config.model_file_location, config.weights_file_location)

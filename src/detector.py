@@ -13,7 +13,7 @@ from src.config import input_length
 from src.github_fetcher import ext_lang_dict
 from src.neural_network_trainer import build_vocab_tokenizer_from_file, encode_sentence, to_language, \
     NeuralNetworkTrainer, load_model, to_binary_list, get_files, load_vocab, build_vocab_tokenizer_from_set, load_data, \
-    save_numpy_arrays, load_vocab_tokenizer
+    save_numpy_arrays, load_vocab_tokenizer, load_sentence
 
 vocab: Set[str] = load_vocab(config.vocab_location)
 vocab_tokenizer: Tokenizer = load_vocab_tokenizer(config.vocab_tokenizer_location)
@@ -27,7 +27,8 @@ x_test, y_test = load_data(f"{config.data_dir}/test", vocab, vocab_tokenizer)
 
 
 def get_neural_network_input(code: str) -> np.ndarray:
-    encoded_sentence: List[int] = encode_sentence(code, vocab_tokenizer)
+    filtered_sentence: str = " ".join([word for word in code if word in vocab])
+    encoded_sentence: List[int] = encode_sentence(filtered_sentence, vocab_tokenizer)
     return pad_sequences([encoded_sentence], maxlen=input_length)
 
 
@@ -54,25 +55,21 @@ def batch_detect(codes: List[str], model=None):
 def load_test_data_incorrectly():
     files: List[str] = get_files([os.path.join(config.data_dir, "test")])
     processed_files: List[str] = []
-    file_contents_list: List[str] = []
+    sentence_list: List[str] = []
     for f in files:
-        try:
-            with open(f, "r") as opened_file:
-                file_contents = opened_file.read()
-                file_contents_list.append(file_contents)
-                processed_files.append(f)
-        except UnicodeDecodeError:
-            logging.error(f"Error occurred while reading {f}")
+        sentence = load_sentence(f, vocab)
+        if len(sentence) == 0:
+            continue
+        sentence_list.append(sentence)
+        processed_files.append(f)
 
-    encoded_sentences: List[List[int]] = [encode_sentence(code, vocab_tokenizer) for code in file_contents_list]
+    encoded_sentences: List[List[int]] = [encode_sentence(sentence, vocab_tokenizer) for sentence in sentence_list]
     x_test = pad_sequences(encoded_sentences, maxlen=input_length)
     y_correct: List[str] = [os.path.dirname(f).split(os.path.sep)[-1] for f in processed_files]
     return x_test, y_correct
 
 
 def calculate_accuracy():
-    total_count = 0
-    correct_count = 0
     files: List[str] = get_files([os.path.join(config.data_dir, "test")])
     processed_files: List[str] = []
     file_contents_list: List[str] = []
@@ -83,19 +80,12 @@ def calculate_accuracy():
                 file_contents_list.append(file_contents)
                 processed_files.append(f)
         except UnicodeDecodeError:
-            continue
-    for f, file_contents in zip(processed_files, file_contents_list):
-        correct_language: str = os.path.dirname(f).split(os.path.sep)[-1]
-        predicted_language = detect(file_contents)
-        total_count += 1
-        if correct_language == predicted_language:
-            correct_count += 1
-    print(f"accuracy: {correct_count / total_count}")
+            logging.error(f"Error occurred while reading {f}")
 
     total_count = 0
     correct_count = 0
     correct_languages = [os.path.dirname(f).split(os.path.sep)[-1] for f in processed_files]
-    predicted_languages = batch_detect(file_contents_list)
+    predicted_languages = [detect(file_contents) for file_contents in file_contents_list]
     for correct_lang, predicted_lang in zip(correct_languages, predicted_languages):
         if correct_lang == predicted_lang:
             correct_count += 1
