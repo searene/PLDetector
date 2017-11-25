@@ -2,8 +2,8 @@ import numpy as np
 from keras.preprocessing.sequence import pad_sequences
 from src import config
 from src.config import input_length
-from src.neural_network_trainer import encode_sentence, load_model, to_binary_list, \
-    load_vocab_tokenizer, load_contents, is_in_vocab, ext_lang_dict, get_all_languages
+from src.neural_network_trainer import load_model, \
+    load_vocab_tokenizer, get_all_languages, load_encoded_sentence_from_string
 
 vocab_tokenizer = load_vocab_tokenizer(config.vocab_tokenizer_location)
 
@@ -15,9 +15,7 @@ def to_language(binary_list):
 
 
 def get_neural_network_input(code):
-    preprocessed_sentence = load_contents(code)
-    filtered_sentence = " ".join([word for word in preprocessed_sentence if is_in_vocab(word, vocab_tokenizer)])
-    encoded_sentence = encode_sentence(filtered_sentence, vocab_tokenizer)
+    encoded_sentence = load_encoded_sentence_from_string(code, vocab_tokenizer)
     return pad_sequences([encoded_sentence], maxlen=input_length)
 
 

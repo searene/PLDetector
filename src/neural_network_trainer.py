@@ -26,6 +26,16 @@ ext_lang_dict = {
 }
 
 
+def load_words_from_string(s):
+    contents = " ".join(s.splitlines())
+    result = re.split(r"[{}()\[\]\'\":.*\s,#=_/\\><;?\-|+]", contents)
+
+    # remove empty elements
+    result = [word for word in result if word.strip() != ""]
+
+    return result
+
+
 def get_all_languages():
     result = []
     for value in ext_lang_dict.values():
@@ -126,16 +136,6 @@ def get_files(data_dir):
     return result
 
 
-def load_contents(s):
-    contents = " ".join(s.splitlines())
-    result = re.split(r"[{}()\[\]\'\":.*\s,#=_/\\><;?\-|+]", contents)
-
-    # remove empty elements
-    result = [word for word in result if word.strip() != ""]
-
-    return result
-
-
 def load_words_from_file(file_name):
     try:
         with open(file_name, "r") as f:
@@ -143,7 +143,7 @@ def load_words_from_file(file_name):
     except UnicodeDecodeError:
         logging.warning(f"Encountered UnicodeDecodeError, ignore file {file_name}.")
         return []
-    return load_contents(contents)
+    return load_words_from_string(contents)
 
 
 def get_languages(ext_lang_dict):
@@ -172,11 +172,28 @@ def is_in_vocab(word, vocab_tokenizer):
     return word in vocab_tokenizer.word_counts.keys()
 
 
-def load_sentence(file_name, vocab_tokenizer):
-    """ Used in loading data, word that is not in the vocabulary will not be included
-    """
-    words = load_words_from_file(file_name)
+def concatenate_qualified_words(words, vocab_tokenizer):
     return " ".join([word for word in words if is_in_vocab(word, vocab_tokenizer)])
+
+
+def load_sentence_from_file(file_name, vocab_tokenizer):
+    words = load_words_from_file(file_name)
+    return concatenate_qualified_words(words, vocab_tokenizer)
+
+
+def load_sentence_from_string(s, vocab_tokenizer):
+    words = load_words_from_string(s)
+    return concatenate_qualified_words(words, vocab_tokenizer)
+
+
+def load_encoded_sentence_from_file(file_name, vocab_tokenizer):
+    sentence = load_sentence_from_file(file_name, vocab_tokenizer)
+    return encode_sentence(sentence, vocab_tokenizer)
+
+
+def load_encoded_sentence_from_string(s, vocab_tokenizer):
+    sentence = load_sentence_from_string(s, vocab_tokenizer)
+    return encode_sentence(sentence, vocab_tokenizer)
 
 
 def load_data(data_dir, vocab_tokenizer):
@@ -185,8 +202,7 @@ def load_data(data_dir, vocab_tokenizer):
     y = []
     for f in files:
         language = os.path.dirname(f).split(os.path.sep)[-1]
-        sentence = load_sentence(f, vocab_tokenizer)
-        x.append(encode_sentence(sentence, vocab_tokenizer))
+        x.append(load_encoded_sentence_from_file(f, vocab_tokenizer))
         y.append(get_lang_sequence(language))
     return pad_sequences(x, maxlen=input_length), asarray(y)
 
