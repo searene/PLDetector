@@ -19,8 +19,6 @@ def decode(b):
     return contents
 
 
-
-
 class GithubFetcher:
     def __init__(self, download_location, first_repo_id, repo_count, proxies, username, password):
         self.__download_location = download_location

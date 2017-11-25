@@ -244,7 +244,6 @@ def build_weight_matrix(vocab_tokenizer, word2vec):
     return weight_matrix
 
 
-
 def build_model(train_data_dir, vocab_tokenizer, word2vec):
     weight_matrix = build_weight_matrix(vocab_tokenizer, word2vec)
 
