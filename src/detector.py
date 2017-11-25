@@ -13,7 +13,7 @@ from src.config import input_length
 from src.github_fetcher import ext_lang_dict
 from src.neural_network_trainer import build_vocab_tokenizer_from_file, encode_sentence, to_language, \
     NeuralNetworkTrainer, load_model, to_binary_list, get_files, load_vocab, build_vocab_tokenizer_from_set, load_data, \
-    save_numpy_arrays, load_vocab_tokenizer, load_sentence
+    save_numpy_arrays, load_vocab_tokenizer, load_sentence, load_words_from_str
 
 vocab: Set[str] = load_vocab(config.vocab_location)
 vocab_tokenizer: Tokenizer = load_vocab_tokenizer(config.vocab_tokenizer_location)
@@ -27,7 +27,8 @@ x_test, y_test = load_data(f"{config.data_dir}/test", vocab, vocab_tokenizer)
 
 
 def get_neural_network_input(code: str) -> np.ndarray:
-    filtered_sentence: str = " ".join([word for word in code if word in vocab])
+    preprocessed_sentence: List[str] = load_words_from_str(code)
+    filtered_sentence: str = " ".join([word for word in preprocessed_sentence if word in vocab])
     encoded_sentence: List[int] = encode_sentence(filtered_sentence, vocab_tokenizer)
     return pad_sequences([encoded_sentence], maxlen=input_length)
 
