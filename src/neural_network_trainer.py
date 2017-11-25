@@ -98,11 +98,6 @@ def build_vocab_tokenizer_from_set(s):
     return vocab_tokenizer
 
 
-def build_vocab_tokenizer_from_file(vocab_location):
-    s = load_vocab(vocab_location)
-    return build_vocab_tokenizer_from_set(s)
-
-
 def should_language_be_loaded(language):
     for value in ext_lang_dict.values():
         if value == language:
@@ -169,129 +164,114 @@ def save_vocabulary(vocabulary, file_location):
             f.write(word + "\n")
 
 
-def load_sentence(file_name, vocab):
+def is_in_vocab(word, vocab_tokenizer):
+    return word in vocab_tokenizer.word_counts.keys()
+
+
+def load_sentence(file_name, vocab_tokenizer):
     """ Used in loading data, word that is not in the vocabulary will not be included
     """
     words = load_words_from_file(file_name)
-    return " ".join([word for word in words if word in vocab])
+    return " ".join([word for word in words if is_in_vocab(word, vocab_tokenizer)])
 
 
-def load_data(data_dir, vocab, vocab_tokenizer):
+def load_data(data_dir, vocab_tokenizer):
     files = get_files(data_dir)
     x = []
     y = []
     for f in files:
         language = os.path.dirname(f).split(os.path.sep)[-1]
-        sentence = load_sentence(f, vocab)
+        sentence = load_sentence(f, vocab_tokenizer)
         x.append(encode_sentence(sentence, vocab_tokenizer))
         y.append(get_lang_sequence(language))
     return pad_sequences(x, maxlen=input_length), asarray(y)
 
 
-class NeuralNetworkTrainer:
-    def __init__(self, train_data_dir, test_data_dir, vocab_location, vocab_tokenizer_location, word2vec_location,
-                 ext_lang_dict):
-        self.train_data_dir = train_data_dir
-        self.test_data_dir = test_data_dir
-        self.vocab_location = vocab_location
-        self.word2vec_location = word2vec_location
-        self.vocab_tokenizer = None
-        self.wordvec_dimension = 100
-        self.ext_lang_dict = ext_lang_dict
+def build_vocab(train_data_dir):
+    vocabulary = Counter()
+    files = get_files(train_data_dir)
+    for f in files:
+        words = load_words_from_file(f)
+        vocabulary.update(words)
 
-        if not os.path.exists(self.vocab_location):
-            self.build_and_save_vocabulary()
-        if not os.path.exists(self.word2vec_location):
-            self.build_and_save_word2vec_model()
+    # remove rare words
+    min_count = 5
+    vocabulary = [word for word, count in vocabulary.items() if count >= min_count]
+    return vocabulary
 
-        self.word2vec = load_word2vec(self.word2vec_location)
-        self.vocab = load_vocab(self.vocab_location)
 
-        if not os.path.exists(vocab_tokenizer_location):
-            vocab_tokenizer = build_vocab_tokenizer_from_set(self.vocab)
-            save_vocab_tokenizer(vocab_tokenizer_location, vocab_tokenizer)
+def build_word2vec_model(train_data_dir, vocab_tokenizer):
+    all_words = []
+    files = get_files(train_data_dir)
+    for f in files:
+        words = load_words_from_file(f)
+        all_words.append([word for word in words if is_in_vocab(word, vocab_tokenizer)])
+    model = Word2Vec(all_words, size=100, window=5, workers=8, min_count=1)
+    return model
 
-        self.vocab_tokenizer = load_vocab_tokenizer(vocab_tokenizer_location)
 
-    def build_vocabulary(self):
-        vocabulary = Counter()
-        files = get_files(self.train_data_dir)
-        for f in files:
-            words = load_words_from_file(f)
-            vocabulary.update(words)
+def build_and_save_word2vec_model(train_data_dir, vocab_tokenizer, word2vec_location):
+    model = build_word2vec_model(train_data_dir, vocab_tokenizer)
+    model.wv.save_word2vec_format(word2vec_location, binary=False)
+    return load_word2vec(word2vec_location)
 
-        # remove rare words
-        min_count = 5
-        vocabulary = [word for word, count in vocabulary.items() if count >= min_count]
-        return vocabulary
 
-    def build_and_save_vocabulary(self):
-        vocabulary = self.build_vocabulary()
-        save_vocabulary(vocabulary, self.vocab_location)
+def get_word2vec_dimension(word2vec):
+    first_vector = list(word2vec.values())[0]
+    return len(first_vector)
 
-    def build_word2vec_model(self, vocabulary):
-        all_tokens = []
-        files = get_files(self.train_data_dir)
-        for f in files:
-            words = load_words_from_file(f)
-            all_tokens.append([token for token in words if token in vocabulary])
-        logging.info("Building the Word2Vec model...")
-        model = Word2Vec(all_tokens, size=100, window=5, workers=8, min_count=1)
-        return model
 
-    def build_and_save_word2vec_model(self):
-        vocab = load_vocab(self.vocab_location)
-        model = self.build_word2vec_model(vocab)
-        logging.info("Saving the word2vec model to the disk...")
-        model.wv.save_word2vec_format(self.word2vec_location, binary=False)
+def build_weight_matrix(vocab_tokenizer, word2vec):
+    vocab_size = len(vocab_tokenizer.word_index) + 1
+    word2vec_dimension = get_word2vec_dimension(word2vec)
+    weight_matrix = zeros((vocab_size, word2vec_dimension))
+    for word, index in vocab_tokenizer.word_index.items():
+        weight_matrix[index] = word2vec[word]
+    return weight_matrix
 
-    def build_model(self):
-        weight_matrix = self.__get_weights()
 
-        # build the embedding layer
-        input_dim = len(self.vocab_tokenizer.word_index) + 1
-        output_dim = self.wordvec_dimension
-        x_train, y_train = load_data(self.train_data_dir, self.vocab, self.vocab_tokenizer)
+def build_model(train_data_dir, vocab_tokenizer, word2vec):
+    weight_matrix = build_weight_matrix(vocab_tokenizer, word2vec)
 
-        embedding_layer = Embedding(input_dim, output_dim, weights=[weight_matrix], input_length=input_length,
-                                    trainable=False)
-        logging.info(f"x_train.shape: {x_train.shape}")
-        logging.info(f"y_train.shape: {y_train.shape}")
-        logging.info(f"weight_matrix.shape: {weight_matrix.shape}")
+    # build the embedding layer
+    input_dim = len(vocab_tokenizer.word_index) + 1
+    output_dim = get_word2vec_dimension(word2vec)
+    x_train, y_train = load_data(train_data_dir, vocab_tokenizer)
 
-        model = Sequential()
-        model.add(embedding_layer)
-        model.add(Conv1D(filters=128, kernel_size=5, activation="relu"))
-        model.add(MaxPooling1D(pool_size=2))
-        model.add(Flatten())
-        model.add(Dense(len(get_all_languages()), activation="sigmoid"))
-        logging.info(model.summary())
-        model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
-        model.fit(x_train, y_train, epochs=10, verbose=2)
-        return model
+    embedding_layer = Embedding(input_dim, output_dim, weights=[weight_matrix], input_length=input_length,
+                                trainable=False)
+    model = Sequential()
+    model.add(embedding_layer)
+    model.add(Conv1D(filters=128, kernel_size=5, activation="relu"))
+    model.add(MaxPooling1D(pool_size=2))
+    model.add(Flatten())
+    model.add(Dense(len(get_all_languages()), activation="sigmoid"))
+    logging.info(model.summary())
+    model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+    model.fit(x_train, y_train, epochs=10, verbose=2)
+    return model
 
-    def evaluate_model(self, model):
-        x_test, y_test = load_data(self.test_data_dir, self.vocab, self.vocab_tokenizer)
-        loss, acc = model.evaluate(x_test, y_test, verbose=0)
-        logging.info('Test Accuracy: %f' % (acc * 100))
 
-    def __get_weights(self):
-        vocab_size = len(self.vocab_tokenizer.word_index) + 1
-        weight_matrix = zeros((vocab_size, self.wordvec_dimension))
-        for word, index in self.vocab_tokenizer.word_index.items():
-            weight_matrix[index] = self.word2vec[word]
-        return weight_matrix
+def evaluate_model(test_data_dir, vocab_tokenizer, model):
+    x_test, y_test = load_data(test_data_dir, vocab_tokenizer)
+    loss, acc = model.evaluate(x_test, y_test, verbose=0)
+    logging.info('Test Accuracy: %f' % (acc * 100))
+
+
+def build_and_save_vocab_tokenizer(train_data_dir, vocab_tokenizer_location):
+    vocab = build_vocab(train_data_dir)
+    vocab_tokenizer = build_vocab_tokenizer_from_set(vocab)
+    save_vocab_tokenizer(vocab_tokenizer_location, vocab_tokenizer)
+    return vocab_tokenizer
 
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    neural_network_trainer = NeuralNetworkTrainer(
-        f"{config.data_dir}/train",
-        f"{config.data_dir}/test",
-        config.vocab_location,
-        config.vocab_tokenizer_location,
-        config.word2vec_location,
-        ext_lang_dict)
-    model = neural_network_trainer.build_model()
-    neural_network_trainer.evaluate_model(model)
+
+    vocab_tokenizer = build_and_save_vocab_tokenizer(config.train_data_dir, config.vocab_tokenizer_location)
+    word2vec = build_and_save_word2vec_model(config.train_data_dir, vocab_tokenizer, config.word2vec_location)
+
+    model = build_model(config.train_data_dir, vocab_tokenizer, word2vec)
+    evaluate_model(config.test_data_dir, vocab_tokenizer, model)
+
     save_model(model, config.model_file_location, config.weights_file_location)

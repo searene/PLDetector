@@ -3,16 +3,15 @@ from keras.preprocessing.sequence import pad_sequences
 from src import config
 from src.config import input_length
 from src.neural_network_trainer import encode_sentence, to_language, \
-    load_model, to_binary_list, load_vocab, \
-    load_vocab_tokenizer, load_contents
+    load_model, to_binary_list, \
+    load_vocab_tokenizer, load_contents, is_in_vocab
 
-vocab = load_vocab(config.vocab_location)
 vocab_tokenizer = load_vocab_tokenizer(config.vocab_tokenizer_location)
 
 
 def get_neural_network_input(code):
     preprocessed_sentence = load_contents(code)
-    filtered_sentence = " ".join([word for word in preprocessed_sentence if word in vocab])
+    filtered_sentence = " ".join([word for word in preprocessed_sentence if is_in_vocab(word, vocab_tokenizer)])
     encoded_sentence = encode_sentence(filtered_sentence, vocab_tokenizer)
     return pad_sequences([encoded_sentence], maxlen=input_length)
 
