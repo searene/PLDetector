@@ -5,9 +5,9 @@ from typing import Dict, List, Callable, Union
 import os
 import requests
 import time
-from requests import Response
 from requests.auth import HTTPBasicAuth
 from src import config
+from src.neural_network_trainer import ext_lang_dict
 
 
 def decode(b):
@@ -19,50 +19,6 @@ def decode(b):
     return contents
 
 
-ext_lang_dict = {
-    # "rb": "Ruby",
-    "py": "Python",
-    "c": "C",
-    # "cpp": "C++",
-    "java": "Java",
-    "scala": "Scala",
-    # "kt": "Kotlin",
-    "js": "Javascript",
-    # "sh": "Shell",
-    # "php": "PHP",
-    "css": "CSS",
-    "cs": "C#",
-    "html": "HTML",
-    # "htm": "HTML",
-    # "xml": "XML",
-    # "yaws": "Erlang",
-    # "pl": "Perl",
-    # "ts": "Typescript",
-    # "go": "Go",
-    # "swift": "Swift",
-    # "r": "R",
-    # "m": ["Objective-C", "Matlab"],
-    # "vimrc": "VimL",
-    # "vim": "VimL",
-    # "coffee": "CoffeeScript",
-    # "tex": "Tex",
-    # "el": "Lisp",
-    # "lisp": "Lisp",
-    # "cl": "Lisp",
-    # "hs": "Haskell",
-    # "lhs": "Haskell",
-    # "lua": "Lua",
-    # "clj": "Closure",
-    # "cljs": "Closure",
-    # "cljc": "Closure",
-    # "edn": "Closure",
-    # "mat": "MatLab",
-    # "pde": "Arduino",
-    # "groovy": "Groovy",
-    # "rs": "Rust",
-    # "rlib": "Rust",
-    # "pp": "Puppet",
-}
 
 
 class GithubFetcher:

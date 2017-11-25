@@ -12,8 +12,28 @@ from keras.preprocessing.text import Tokenizer
 from numpy import asarray, zeros
 from src import config
 from src.config import input_length
-from src.github_fetcher import ext_lang_dict
 import pickle
+
+ext_lang_dict = {
+    "py": "Python",
+    "c": "C",
+    "java": "Java",
+    "scala": "Scala",
+    "js": "Javascript",
+    "css": "CSS",
+    "cs": "C#",
+    "html": "HTML"
+}
+
+
+def get_all_languages():
+    result = []
+    for value in ext_lang_dict.values():
+        if type(value) is list:
+            result.extend(value)
+        else:
+            result.append(value)
+    return result
 
 
 def save_vocab_tokenizer(vocab_tokenzier_location, vocab_tokenizer):
@@ -34,26 +54,10 @@ def evaluate_saved_data(x_file_name, y_file_name, model):
     print(f"loss: {loss}, accuracy: {accuracy}")
 
 
-def get_all_languages():
-    result = []
-    for value in ext_lang_dict.values():
-        if type(value) is list:
-            result.extend(value)
-        else:
-            result.append(value)
-    return result
-
-
 def to_binary_list(i, count):
     result = [0] * count
     result[i] = 1
     return result
-
-
-def to_language(binary_list):
-    languages = get_all_languages()
-    i = np.argmax(binary_list)
-    return languages[i]
 
 
 def get_lang_sequence(lang):
@@ -200,20 +204,14 @@ def build_vocab(train_data_dir):
     return vocabulary
 
 
-def build_word2vec_model(train_data_dir, vocab_tokenizer):
+def build_word2vec(train_data_dir, vocab_tokenizer):
     all_words = []
     files = get_files(train_data_dir)
     for f in files:
         words = load_words_from_file(f)
         all_words.append([word for word in words if is_in_vocab(word, vocab_tokenizer)])
     model = Word2Vec(all_words, size=100, window=5, workers=8, min_count=1)
-    return model
-
-
-def build_and_save_word2vec_model(train_data_dir, vocab_tokenizer, word2vec_location):
-    model = build_word2vec_model(train_data_dir, vocab_tokenizer)
-    model.wv.save_word2vec_format(word2vec_location, binary=False)
-    return load_word2vec(word2vec_location)
+    return {word: model[word] for word in model.wv.index2word}
 
 
 def get_word2vec_dimension(word2vec):
@@ -228,6 +226,7 @@ def build_weight_matrix(vocab_tokenizer, word2vec):
     for word, index in vocab_tokenizer.word_index.items():
         weight_matrix[index] = word2vec[word]
     return weight_matrix
+
 
 
 def build_model(train_data_dir, vocab_tokenizer, word2vec):
@@ -269,7 +268,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
     vocab_tokenizer = build_and_save_vocab_tokenizer(config.train_data_dir, config.vocab_tokenizer_location)
-    word2vec = build_and_save_word2vec_model(config.train_data_dir, vocab_tokenizer, config.word2vec_location)
+    word2vec = build_word2vec(config.train_data_dir, vocab_tokenizer)
 
     model = build_model(config.train_data_dir, vocab_tokenizer, word2vec)
     evaluate_model(config.test_data_dir, vocab_tokenizer, model)
