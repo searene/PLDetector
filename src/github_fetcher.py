@@ -10,7 +10,7 @@ from requests.auth import HTTPBasicAuth
 from src import config
 
 
-def decode(b: bytes) -> str:
+def decode(b):
     try:
         contents = b.decode("utf-8")
     except UnicodeDecodeError:
@@ -19,7 +19,7 @@ def decode(b: bytes) -> str:
     return contents
 
 
-ext_lang_dict: Dict[str, Union[str, List[str]]] = {
+ext_lang_dict = {
     # "rb": "Ruby",
     "py": "Python",
     "c": "C",
@@ -66,39 +66,37 @@ ext_lang_dict: Dict[str, Union[str, List[str]]] = {
 
 
 class GithubFetcher:
-    def __init__(self, download_location: str, first_repo_id: int, repo_count: int, proxies: Dict[str, str],
-                 username: str,
-                 password: str):
-        self.__download_location: str = download_location
-        self.__first_repo_id: int = first_repo_id
-        self.__repo_count: int = repo_count
+    def __init__(self, download_location, first_repo_id, repo_count, proxies, username, password):
+        self.__download_location = download_location
+        self.__first_repo_id = first_repo_id
+        self.__repo_count = repo_count
         self.__proxies = proxies
         self.__username = username
         self.__password = password
-        self.__filter: Dict[str, Callable] = {
+        self.__filter = {
             "php": extract_php
         }
 
-    def run(self) -> None:
-        repos: List[Dict[str, str]] = self.__get_repo_list()
+    def run(self):
+        repos = self.__get_repo_list()
         for repo in repos:
             logging.info(f"Start fetching repo {repo['id']}")
-            type_to_files_list: Dict[str, Dict[str, str]] = self.__get_files(repo["contents_url"])
+            type_to_files_list = self.__get_files(repo["contents_url"])
             for file_type, download_url_list in type_to_files_list.items():
-                dir: str = os.path.join(self.__download_location, file_type)
+                dir = os.path.join(self.__download_location, file_type)
                 for download_url in download_url_list:
                     file_name = self.__add_time_to_filename(os.path.basename(download_url))
                     location = os.path.join(dir, file_name)
                     self.__download(download_url, location)
         logging.info("Download is completed.")
 
-    def __add_time_to_filename(self, file_name: str) -> str:
+    def __add_time_to_filename(self, file_name):
         file_name_parts = os.path.splitext(file_name)
         time_batch = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
         return f"{file_name_parts[0]}_{time_batch}{file_name_parts[1]}"
 
-    def __get_repo_list(self) -> List[Dict[str, str]]:
-        result: List[Dict[str, str]] = []
+    def __get_repo_list(self):
+        result = []
         start_id: int = self.__first_repo_id - 1 if self.__first_repo_id - 1 >= 0 else 0
         while True:
             repos = self.__do_get(f"https://api.github.com/repositories?since={start_id}").json()
@@ -109,7 +107,7 @@ class GithubFetcher:
                 return result[:self.__repo_count]
             start_id = result[-1]["id"]
 
-    def __get_files(self, contents_url: str, type_to_files_dict: Dict[str, List[str]] = None) -> Dict[str, List[str]]:
+    def __get_files(self, contents_url, type_to_files_dict):
         logging.info(f"Start fetching files from contents_url: {contents_url}")
         if type_to_files_dict is None:
             type_to_files_dict = {}
@@ -134,22 +132,21 @@ class GithubFetcher:
                 self.__update_type_files_dict(type_to_files_dict, file_type, file["download_url"])
         return type_to_files_dict
 
-    def __update_type_files_dict(self, type_to_files_dict: Dict[str, List[str]], file_type: str,
-                                 download_url: str) -> None:
+    def __update_type_files_dict(self, type_to_files_dict, file_type, download_url):
         if file_type in type_to_files_dict:
             type_to_files_dict[file_type].append(download_url)
         else:
             type_to_files_dict[file_type] = [download_url]
 
-    def __get_file_type(self, filename: str) -> Union[str, List[str]]:
+    def __get_file_type(self, filename):
         ext = os.path.splitext(filename)[1][1:]
         return ext_lang_dict.get(ext)
 
-    def __get_filter(self, filename: str) -> Callable:
+    def __get_filter(self, filename):
         ext = os.path.splitext(filename)[1][1:]
         return self.__filter.get(ext)
 
-    def __download(self, download_url: str, file_location: str) -> None:
+    def __download(self, download_url, file_location):
         logging.info(f"Download file from {download_url}, saving to {file_location}")
         contents: bytes = self.__do_get(download_url).content
 
@@ -164,19 +161,19 @@ class GithubFetcher:
             with open(file_location, "wb") as f:
                 f.write(contents)
 
-    def __do_get(self, url) -> Response:
+    def __do_get(self, url):
         return requests.get(url, proxies=self.__proxies, auth=HTTPBasicAuth(self.__username, self.__password))
 
-    def __universal_contents_filter(self, contents: bytes) -> bytes:
+    def __universal_contents_filter(self, contents):
         # set line separator as \n instead of \r or \r\n
         return "\n".join(decode(contents).splitlines()).encode("utf-8")
 
 
-def extract_between(s: str, str1: str, str2: str) -> List[str]:
-    result: List[str] = []
+def extract_between(s, str1, str2):
+    result = []
     start_pos = 0
     while True:
-        index1: int = s.find(str1, start_pos)
+        index1 = s.find(str1, start_pos)
         index2 = -1 if index1 == -1 else s.find(str2, index1 + 1)
         if index1 == -1 or index2 == -1:
             break
@@ -185,7 +182,7 @@ def extract_between(s: str, str1: str, str2: str) -> List[str]:
     return result
 
 
-def extract_php(contents_in_bytes: bytes) -> bytes:
+def extract_php(contents_in_bytes):
     php_start_tag = "<?php"
     php_end_tag = "?>"
     s = decode(contents_in_bytes)

@@ -16,7 +16,7 @@ from src.github_fetcher import ext_lang_dict
 import pickle
 
 
-def clean_vocab_and_word2vec() -> None:
+def clean_vocab_and_word2vec():
     try:
         os.remove(config.vocab_location)
     except FileNotFoundError:
@@ -31,26 +31,26 @@ def clean_vocab_and_word2vec() -> None:
         pass
 
 
-def save_vocab_tokenizer(vocab_tokenzier_location: str, vocab_tokenizer: Tokenizer) -> None:
+def save_vocab_tokenizer(vocab_tokenzier_location, vocab_tokenizer):
     with open(vocab_tokenzier_location, 'wb') as f:
         pickle.dump(vocab_tokenizer, f, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-def load_vocab_tokenizer(vocab_tokenizer_location: str) -> Tokenizer:
+def load_vocab_tokenizer(vocab_tokenizer_location):
     with open(vocab_tokenizer_location, 'rb') as f:
         tokenizer = pickle.load(f)
     return tokenizer
 
 
-def evaluate_saved_data(x_file_name: str, y_file_name: str, model: Sequential) -> None:
-    x: ndarray = np.loadtxt(x_file_name)
-    y: ndarray = np.loadtxt(y_file_name)
+def evaluate_saved_data(x_file_name, y_file_name, model):
+    x = np.loadtxt(x_file_name)
+    y = np.loadtxt(y_file_name)
     loss, accuracy = model.evaluate(x, y, verbose=2)
     print(f"loss: {loss}, accuracy: {accuracy}")
 
 
-def get_all_languages() -> List[str]:
-    result: List[str] = []
+def get_all_languages():
+    result = []
     for value in ext_lang_dict.values():
         if type(value) is list:
             result.extend(value)
@@ -59,19 +59,19 @@ def get_all_languages() -> List[str]:
     return result
 
 
-def to_binary_list(i: int, count: int) -> List[int]:
+def to_binary_list(i, count):
     result = [0] * count
     result[i] = 1
     return result
 
 
-def to_language(binary_list: List[int]) -> str:
-    languages: List[str] = get_all_languages()
-    i: int = np.argmax(binary_list)
+def to_language(binary_list):
+    languages = get_all_languages()
+    i = np.argmax(binary_list)
     return languages[i]
 
 
-def get_lang_sequence(lang: str) -> List[int]:
+def get_lang_sequence(lang):
     languages = get_all_languages()
     for i in range(len(languages)):
         if languages[i] == lang:
@@ -79,49 +79,43 @@ def get_lang_sequence(lang: str) -> List[int]:
     raise Exception(f"Language {lang} is not supported.")
 
 
-def encode_sentence(sentence: str, vocab_tokenizer: Tokenizer) -> List[int]:
-    encoded_sentence: List[List[int]] = vocab_tokenizer.texts_to_sequences(sentence.split())
+def encode_sentence(sentence, vocab_tokenizer):
+    encoded_sentence = vocab_tokenizer.texts_to_sequences(sentence.split())
     return [word[0] for word in encoded_sentence if len(word) != 0]
 
 
-def load_vocab(vocab_location) -> Set[str]:
+def load_vocab(vocab_location):
     with open(vocab_location) as f:
         words = f.read().splitlines()
     return set(words)
 
 
-def load_word2vec(word2vec_location: str) -> Dict[str, ndarray]:
-    result: Dict[str, ndarray] = dict()
+def load_word2vec(word2vec_location):
+    result = dict()
     with open(word2vec_location, "r", encoding="utf-8") as f:
-        lines: List[str] = f.readlines()[1:]
+        lines = f.readlines()[1:]
     for line in lines:
-        parts: List[str] = line.split()
+        parts = line.split()
         result[parts[0]] = asarray(parts[1:], dtype="float32")
     return result
 
 
-def load_model(model_file_location: str, weights_file_location: str) -> Sequential:
+def load_model(model_file_location, weights_file_location):
     with open(model_file_location) as f:
         model = model_from_json(f.read())
     model.load_weights(weights_file_location)
     return model
 
 
-def build_vocab_tokenizer_from_set(s: Set[str]) -> Tokenizer:
+def build_vocab_tokenizer_from_set(s):
     vocab_tokenizer = Tokenizer(lower=False, filters="")
     vocab_tokenizer.fit_on_texts(s)
-    print(vocab_tokenizer.texts_to_sequences(["size1"]))
     return vocab_tokenizer
 
 
-def build_vocab_tokenizer_from_file(vocab_location: str) -> Tokenizer:
-    s: Set[str] = load_vocab(vocab_location)
+def build_vocab_tokenizer_from_file(vocab_location):
+    s = load_vocab(vocab_location)
     return build_vocab_tokenizer_from_set(s)
-
-
-def save_numpy_arrays(numpy_arrays: Dict[str, ndarray]):
-    for file_name, array in numpy_arrays.items():
-        np.savetxt(file_name, array)
 
 
 def should_language_be_loaded(language):
@@ -131,8 +125,8 @@ def should_language_be_loaded(language):
     return False
 
 
-def get_files(data_dirs: List[str]) -> List[str]:
-    result: List[str] = []
+def get_files(data_dirs):
+    result = []
     for data_dir in data_dirs:
         depth = 0
         for root, sub_folders, files in os.walk(data_dir):
@@ -149,7 +143,7 @@ def get_files(data_dirs: List[str]) -> List[str]:
     return result
 
 
-def load_words_from_str(s: str) -> List[str]:
+def load_words_from_str(s):
     contents = " ".join(s.splitlines())
     result = re.split(r"[{}()\[\]\'\":.*\s,#=_/\\><;?\-|+]", contents)
 
@@ -159,7 +153,7 @@ def load_words_from_str(s: str) -> List[str]:
     return result
 
 
-def load_words_from_file(file_name: str) -> List[str]:
+def load_words_from_file(file_name):
     try:
         with open(file_name, "r") as f:
             contents = f.read()
@@ -169,8 +163,8 @@ def load_words_from_file(file_name: str) -> List[str]:
     return load_words_from_str(contents)
 
 
-def get_languages(ext_lang_dict: Dict[str, Union[str, List[str]]]) -> Set[str]:
-    languages: Set[str] = set()
+def get_languages(ext_lang_dict):
+    languages = set()
     for ext, language in ext_lang_dict.items():
         if type(language) is str:
             languages.update([language])
@@ -179,46 +173,46 @@ def get_languages(ext_lang_dict: Dict[str, Union[str, List[str]]]) -> Set[str]:
     return languages
 
 
-def save_model(model: Sequential, model_file_location, weights_file_location) -> None:
+def save_model(model, model_file_location, weights_file_location):
     with open(model_file_location, "w") as f:
         f.write(model.to_json())
     model.save_weights(weights_file_location)
 
 
-def save_vocabulary(vocabulary: Counter, file_location: str) -> None:
+def save_vocabulary(vocabulary, file_location):
     with open(file_location, "w+") as f:
         for word in vocabulary:
             f.write(word + "\n")
 
 
-def load_sentence(file_name: str, vocab: Set[str]) -> str:
+def load_sentence(file_name, vocab):
     """ Used in loading data, word that is not in the vocabulary will not be included
     """
     words = load_words_from_file(file_name)
     return " ".join([word for word in words if word in vocab])
 
 
-def load_data(data_dir: str, vocab: Set[str], vocab_tokenizer: Tokenizer) -> (ndarray, ndarray):
+def load_data(data_dir, vocab, vocab_tokenizer):
     files = get_files([data_dir])
-    x: List[List[int]] = []
-    y: List[List[int]] = []
+    x = []
+    y = []
     for f in files:
-        language: str = os.path.dirname(f).split(os.path.sep)[-1]
-        sentence: str = load_sentence(f, vocab)
+        language = os.path.dirname(f).split(os.path.sep)[-1]
+        sentence = load_sentence(f, vocab)
         x.append(encode_sentence(sentence, vocab_tokenizer))
         y.append(get_lang_sequence(language))
     return pad_sequences(x, maxlen=input_length), asarray(y)
 
 
 class NeuralNetworkTrainer:
-    def __init__(self, train_data_dir: str, test_data_dir: str, vocab_location: str, vocab_tokenizer_location: str, word2vec_location: str,
-                 ext_lang_dict: Dict[str, Union[str, List[str]]]):
+    def __init__(self, train_data_dir, test_data_dir, vocab_location, vocab_tokenizer_location, word2vec_location,
+                 ext_lang_dict):
         self.train_data_dir = train_data_dir
         self.test_data_dir = test_data_dir
         self.vocab_location = vocab_location
         self.word2vec_location = word2vec_location
-        self.vocab_tokenizer: Tokenizer = None
-        self.language_tokenizer: Tokenizer = None
+        self.vocab_tokenizer = None
+        self.language_tokenizer = None
         self.wordvec_dimension = 100
         self.ext_lang_dict = ext_lang_dict
 
@@ -230,17 +224,17 @@ class NeuralNetworkTrainer:
         if not os.path.exists(self.word2vec_location):
             self.build_and_save_word2vec_model()
 
-        self.word2vec: Dict[str, ndarray] = load_word2vec(self.word2vec_location)
-        self.vocab: Set[str] = load_vocab(self.vocab_location)
+        self.word2vec = load_word2vec(self.word2vec_location)
+        self.vocab = load_vocab(self.vocab_location)
 
         if not os.path.exists(vocab_tokenizer_location):
             vocab_tokenizer = build_vocab_tokenizer_from_set(self.vocab)
             save_vocab_tokenizer(vocab_tokenizer_location, vocab_tokenizer)
 
-        self.vocab_tokenizer: Tokenizer = load_vocab_tokenizer(vocab_tokenizer_location)
+        self.vocab_tokenizer = load_vocab_tokenizer(vocab_tokenizer_location)
 
-    def build_vocabulary(self) -> Counter:
-        vocabulary: Counter = Counter()
+    def build_vocabulary(self):
+        vocabulary = Counter()
         files = get_files([self.train_data_dir, self.test_data_dir])
         for f in files:
             words = load_words_from_file(f)
@@ -251,38 +245,33 @@ class NeuralNetworkTrainer:
         vocabulary = [word for word, count in vocabulary.items() if count >= min_count]
         return vocabulary
 
-    def build_and_save_vocabulary(self) -> None:
-        vocabulary: Counter = self.build_vocabulary()
+    def build_and_save_vocabulary(self):
+        vocabulary = self.build_vocabulary()
         save_vocabulary(vocabulary, self.vocab_location)
 
-    def build_word2vec_model(self, vocabulary: Set[str]) -> Word2Vec:
-        all_tokens: List[List[str]] = []
-        files: List[str] = get_files([self.train_data_dir, self.test_data_dir])
+    def build_word2vec_model(self, vocabulary):
+        all_tokens = []
+        files = get_files([self.train_data_dir, self.test_data_dir])
         for f in files:
-            words: List[str] = load_words_from_file(f)
+            words = load_words_from_file(f)
             all_tokens.append([token for token in words if token in vocabulary])
         logging.info("Building the Word2Vec model...")
         model = Word2Vec(all_tokens, size=100, window=5, workers=8, min_count=1)
         return model
 
-    def build_and_save_word2vec_model(self) -> None:
+    def build_and_save_word2vec_model(self):
         vocab = load_vocab(self.vocab_location)
         model = self.build_word2vec_model(vocab)
         logging.info("Saving the word2vec model to the disk...")
         model.wv.save_word2vec_format(self.word2vec_location, binary=False)
 
-    def build_model(self) -> Sequential:
-        weight_matrix: ndarray = self.__get_weights()
+    def build_model(self):
+        weight_matrix = self.__get_weights()
 
         # build the embedding layer
         input_dim = len(self.vocab_tokenizer.word_index) + 1
         output_dim = self.wordvec_dimension
         x_train, y_train = load_data(self.train_data_dir, self.vocab, self.vocab_tokenizer)
-
-        save_numpy_arrays({
-            "../resources/x_train.txt": x_train,
-            "../resources/y_train.txt": y_train
-        })
 
         embedding_layer = Embedding(input_dim, output_dim, weights=[weight_matrix], input_length=input_length,
                                     trainable=False)
@@ -301,22 +290,18 @@ class NeuralNetworkTrainer:
         model.fit(x_train, y_train, epochs=10, verbose=2)
         return model
 
-    def evaluate_model(self, model: Sequential) -> None:
+    def evaluate_model(self, model):
         x_test, y_test = load_data(self.test_data_dir, self.vocab, self.vocab_tokenizer)
-        save_numpy_arrays({
-            "../resources/x_test.txt": x_test,
-            "../resources/y_test.txt": y_test
-        })
         loss, acc = model.evaluate(x_test, y_test, verbose=0)
         logging.info('Test Accuracy: %f' % (acc * 100))
 
-    def __build_language_tokenizer(self, languages: List[str]) -> Tokenizer:
+    def __build_language_tokenizer(self, languages):
         if self.language_tokenizer is None:
             self.language_tokenizer = Tokenizer()
             self.language_tokenizer.fit_on_texts(languages)
         return self.language_tokenizer
 
-    def __get_weights(self) -> ndarray:
+    def __get_weights(self):
         vocab_size = len(self.vocab_tokenizer.word_index) + 1
         weight_matrix = zeros((vocab_size, self.wordvec_dimension))
         for word, index in self.vocab_tokenizer.word_index.items():
