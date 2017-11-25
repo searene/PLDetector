@@ -1,19 +1,17 @@
-from typing import List, Iterable, Set
 import numpy as np
 from keras.preprocessing.sequence import pad_sequences
-from keras.preprocessing.text import Tokenizer
 from src import config
 from src.config import input_length
 from src.neural_network_trainer import encode_sentence, to_language, \
-    load_model, to_binary_list, get_files, load_vocab, \
-    load_vocab_tokenizer, load_words_from_str
+    load_model, to_binary_list, load_vocab, \
+    load_vocab_tokenizer, load_contents
 
 vocab = load_vocab(config.vocab_location)
 vocab_tokenizer = load_vocab_tokenizer(config.vocab_tokenizer_location)
 
 
 def get_neural_network_input(code):
-    preprocessed_sentence = load_words_from_str(code)
+    preprocessed_sentence = load_contents(code)
     filtered_sentence = " ".join([word for word in preprocessed_sentence if word in vocab])
     encoded_sentence = encode_sentence(filtered_sentence, vocab_tokenizer)
     return pad_sequences([encoded_sentence], maxlen=input_length)

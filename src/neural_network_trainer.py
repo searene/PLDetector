@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import List, Set, Counter, Union, Dict
+from typing import Counter
 import numpy as np
 import os
 from gensim.models import Word2Vec
@@ -9,26 +9,11 @@ from keras.layers import Embedding, Conv1D, MaxPooling1D, Flatten, Dense
 from keras.models import model_from_json
 from keras.preprocessing.sequence import pad_sequences
 from keras.preprocessing.text import Tokenizer
-from numpy import asarray, ndarray, zeros
+from numpy import asarray, zeros
 from src import config
 from src.config import input_length
 from src.github_fetcher import ext_lang_dict
 import pickle
-
-
-def clean_vocab_and_word2vec():
-    try:
-        os.remove(config.vocab_location)
-    except FileNotFoundError:
-        pass
-    try:
-        os.remove(config.vocab_tokenizer_location)
-    except FileNotFoundError:
-        pass
-    try:
-        os.remove(config.word2vec_location)
-    except FileNotFoundError:
-        pass
 
 
 def save_vocab_tokenizer(vocab_tokenzier_location, vocab_tokenizer):
@@ -125,25 +110,24 @@ def should_language_be_loaded(language):
     return False
 
 
-def get_files(data_dirs):
+def get_files(data_dir):
     result = []
-    for data_dir in data_dirs:
-        depth = 0
-        for root, sub_folders, files in os.walk(data_dir):
-            depth += 1
+    depth = 0
+    for root, sub_folders, files in os.walk(data_dir):
+        depth += 1
 
-            # ignore the first loop
-            if depth == 1:
-                continue
+        # ignore the first loop
+        if depth == 1:
+            continue
 
-            language = os.path.basename(root)
-            if should_language_be_loaded(language):
-                result.extend([os.path.join(root, f) for f in files])
-            depth += 1
+        language = os.path.basename(root)
+        if should_language_be_loaded(language):
+            result.extend([os.path.join(root, f) for f in files])
+        depth += 1
     return result
 
 
-def load_words_from_str(s):
+def load_contents(s):
     contents = " ".join(s.splitlines())
     result = re.split(r"[{}()\[\]\'\":.*\s,#=_/\\><;?\-|+]", contents)
 
@@ -160,7 +144,7 @@ def load_words_from_file(file_name):
     except UnicodeDecodeError:
         logging.warning(f"Encountered UnicodeDecodeError, ignore file {file_name}.")
         return []
-    return load_words_from_str(contents)
+    return load_contents(contents)
 
 
 def get_languages(ext_lang_dict):
@@ -193,7 +177,7 @@ def load_sentence(file_name, vocab):
 
 
 def load_data(data_dir, vocab, vocab_tokenizer):
-    files = get_files([data_dir])
+    files = get_files(data_dir)
     x = []
     y = []
     for f in files:
@@ -212,12 +196,8 @@ class NeuralNetworkTrainer:
         self.vocab_location = vocab_location
         self.word2vec_location = word2vec_location
         self.vocab_tokenizer = None
-        self.language_tokenizer = None
         self.wordvec_dimension = 100
         self.ext_lang_dict = ext_lang_dict
-
-        languages = get_languages(ext_lang_dict)
-        self.__build_language_tokenizer(list(languages))
 
         if not os.path.exists(self.vocab_location):
             self.build_and_save_vocabulary()
@@ -235,7 +215,7 @@ class NeuralNetworkTrainer:
 
     def build_vocabulary(self):
         vocabulary = Counter()
-        files = get_files([self.train_data_dir, self.test_data_dir])
+        files = get_files(self.train_data_dir)
         for f in files:
             words = load_words_from_file(f)
             vocabulary.update(words)
@@ -251,7 +231,7 @@ class NeuralNetworkTrainer:
 
     def build_word2vec_model(self, vocabulary):
         all_tokens = []
-        files = get_files([self.train_data_dir, self.test_data_dir])
+        files = get_files(self.train_data_dir)
         for f in files:
             words = load_words_from_file(f)
             all_tokens.append([token for token in words if token in vocabulary])
@@ -295,12 +275,6 @@ class NeuralNetworkTrainer:
         loss, acc = model.evaluate(x_test, y_test, verbose=0)
         logging.info('Test Accuracy: %f' % (acc * 100))
 
-    def __build_language_tokenizer(self, languages):
-        if self.language_tokenizer is None:
-            self.language_tokenizer = Tokenizer()
-            self.language_tokenizer.fit_on_texts(languages)
-        return self.language_tokenizer
-
     def __get_weights(self):
         vocab_size = len(self.vocab_tokenizer.word_index) + 1
         weight_matrix = zeros((vocab_size, self.wordvec_dimension))
@@ -311,7 +285,6 @@ class NeuralNetworkTrainer:
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    # clean_vocab_and_word2vec()
     neural_network_trainer = NeuralNetworkTrainer(
         f"{config.data_dir}/train",
         f"{config.data_dir}/test",

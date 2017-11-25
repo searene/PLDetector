@@ -9,7 +9,7 @@ from src.neural_network_trainer import get_files
 
 
 def calculate_accuracy():
-    files: List[str] = get_files([os.path.join(config.data_dir, "test")])
+    files: List[str] = get_files(os.path.join(config.data_dir, "test"))
     processed_files: List[str] = []
     file_contents_list: List[str] = []
     for f in files:
