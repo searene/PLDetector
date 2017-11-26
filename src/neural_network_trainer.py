@@ -15,7 +15,53 @@ import pickle
 from src import config
 from src.config import input_length
 
-all_languages = ["Python", "C", "Java", "Scala", "Javascript", "CSS", "C#", "HTML", "Ruby"]
+
+ext_lang_dict = {
+    "rb": "Ruby",
+    "py": "Python",
+    "c": "C",
+    "cpp": "C++",
+    "java": "Java",
+    # "scala": "Scala",
+    # "kt": "Kotlin",
+    "js": "Javascript",
+    # "sh": "Shell",
+    # "php": "PHP",
+    "css": "CSS",
+    "cs": "C#",
+    "html": "HTML",
+    # "htm": "HTML",
+    # "xml": "XML",
+    # "yaws": "Erlang",
+    # "pl": "Perl",
+    # "ts": "Typescript",
+    # "go": "Go",
+    # "swift": "Swift",
+    # "r": "R",
+    # "m": "Objective-C",
+    # "vimrc": "VimL",
+    # "vim": "VimL",
+    # "coffee": "CoffeeScript",
+    # "tex": "Tex",
+    # "el": "Lisp",
+    # "lisp": "Lisp",
+    # "cl": "Lisp",
+    # "hs": "Haskell",
+    # "lhs": "Haskell",
+    # "lua": "Lua",
+    # "clj": "Closure",
+    # "cljs": "Closure",
+    # "cljc": "Closure",
+    # "edn": "Closure",
+    # "mat": "MatLab",
+    # "pde": "Arduino",
+    # "groovy": "Groovy",
+    # "rs": "Rust",
+    # "rlib": "Rust",
+    # "pp": "Puppet",
+}
+
+all_languages = [t for (ext, t) in ext_lang_dict.items()]
 
 
 def load_words_from_string(s):
