@@ -35,7 +35,7 @@ class GithubFetcher:
         repos = self.__get_repo_list()
         for repo in repos:
             logging.info(f"Start fetching repo {repo['id']}")
-            type_to_files_list = self.__get_files(repo["contents_url"])
+            type_to_files_list = self.__get_files(repo["contents_url"], ext_lang_dict)
             for file_type, download_url_list in type_to_files_list.items():
                 dir = os.path.join(self.__download_location, file_type)
                 for download_url in download_url_list:
