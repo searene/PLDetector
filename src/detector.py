@@ -4,9 +4,11 @@ from src import config
 from src.config import input_length
 from src.neural_network_trainer import load_model, \
     load_vocab_tokenizer, load_encoded_sentence_from_string, all_languages
+import tensorflow as tf
 
 vocab_tokenizer = load_vocab_tokenizer(config.vocab_tokenizer_location)
 model = load_model(config.model_file_location, config.weights_file_location)
+graph = tf.get_default_graph()
 
 
 def to_language(binary_list):
@@ -20,14 +22,12 @@ def get_neural_network_input(code):
 
 
 def detect(code):
-    y_proba = model.predict(get_neural_network_input(code))
+    with graph.as_default():
+        y_proba = model.predict(get_neural_network_input(code))
     return to_language(y_proba)
 
 
 if __name__ == "__main__":
-    code = """
-def test():
-    print("something")
-"""
+    code = 'def test():\n   print("something")'
     print(detect(code))
 
