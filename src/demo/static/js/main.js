@@ -1,12 +1,17 @@
 function detect() {
-    var code = document.getElementById("code").value;
+
+    var detectionResult = $('#detection-result');
+    detectionResult.text('...');
+
+    var textarea = document.getElementById("code");
+    var code = textarea.value;
     $.get({
         url: "/detect",
         data: {
             code: code
         },
         success: function(language) {
-            $('#detection-result').text(language)
+            detectionResult.text(language)
         }
     })
 }
