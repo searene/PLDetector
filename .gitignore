@@ -1,7 +1,3 @@
 config.py
 .idea/
 __pycache__/
-vocab.txt
-vocab_tokenizer
-word2vec.txt
-models
