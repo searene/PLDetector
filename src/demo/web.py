@@ -1,5 +1,8 @@
 from flask import Flask, render_template, request
 
+import sys
+sys.path.insert(0, '../..')
+
 from src.detector import detect
 
 app = Flask(__name__, template_folder="./template")
